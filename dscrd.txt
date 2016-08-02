@@ -1,0 +1,133 @@
+26:	SCRIPT_NAME = "discord_extension"
+30:	SCRIPT_DESC = "Extends weechat for typing notification/search/etc on discord.com"
+37:	DISCORD_API_TRANSLATOR = {
+71:	    send debug output to the discord-debug buffer and optionally write to a file.
+80:	        if discord_debug is not None:	
+81:	            w.prnt(discord_debug, message)
+128:	class DiscordServer(object):	
+130:	    Root object used to represent connection and state of the connection to a discord group.
+153:	        self.connect_to_discord()
+208:	    def connect_to_discord(self):	
+211:	            async_discord_api_request("discord.com", self.token, "rtm.start", {"ts":	 t})
+214:	    def connected_to_discord(self, login_data):	
+216:	            self.domain = login_data["team"]["domain"] + ".discord.com"
+230:	            if self.create_discord_websocket(login_data):	
+234:	                self.ping_hook = w.hook_timer(1000 * 5, 0, 0, "discord_ping_cb", self.domain)
+236:	                    self.create_discord_mappings(login_data)
+254:	            w.prnt("", "\n!! discord.com login error:	 " + login_data["error"] + "\n Please check your API token with\n \"/set plugins.var.python.discord_extension.discord_api_token (token)\"\n\n ")
+258:	        self.buffer_prnt('Connected to Discord', backlog=True)
+273:	    def create_discord_websocket(self, data):	
+277:	            self.ws_hook = w.hook_fd(self.ws.sock._sock.fileno(), 1, 0, 0, "discord_websocket_cb", self.identifier)
+284:	    def create_discord_mappings(self, data):	
+551:	        if "info" in DISCORD_API_TRANSLATOR[self.type]:	
+552:	            async_discord_api_request(self.server.domain, self.server.token, DISCORD_API_TRANSLATOR[self.type]["info"], {"name":	 self.name.lstrip("#")})
+554:	            if "join" in DISCORD_API_TRANSLATOR[self.type]:	
+555:	                async_discord_api_request(self.server.domain, self.server.token, DISCORD_API_TRANSLATOR[self.type]["join"], {"name":	 self.name.lstrip("#")})
+556:	                async_discord_api_request(self.server.domain, self.server.token, DISCORD_API_TRANSLATOR[self.type]["join"], {"user":	 users.find(self.name).identifier})
+566:	            async_discord_api_request(self.server.domain, self.server.token, DISCORD_API_TRANSLATOR[self.type]["leave"], {"channel":	 self.identifier})
+599:	        async_discord_api_request(self.server.domain, self.server.token, DISCORD_API_TRANSLATOR[self.type]["mark"], {"channel":	 self.identifier, "ts":	 time})
+705:	            #we do this because time resolution in weechat is less than discord
+738:	            async_discord_api_request(self.server.domain, self.server.token, method, data)
+743:	            async_discord_api_request(self.server.domain, self.server.token, 'chat.delete', {"channel":	 self.identifier, "ts":	 message['ts']})
+746:	            async_discord_api_request(self.server.domain, self.server.token, 'chat.update', {"channel":	 self.identifier, "ts":	 message['ts'], "text":	 new_message.encode("utf-8")})
+765:	                async_discord_api_request(self.server.domain, self.server.token, DISCORD_API_TRANSLATOR[self.type]["history"], {"channel":	 self.identifier, "oldest":	 self.last_received, "count":	 BACKLOG_SIZE})
+767:	                async_discord_api_request(self.server.domain, self.server.token, DISCORD_API_TRANSLATOR[self.type]["history"], {"channel":	 self.identifier, "count":	 BACKLOG_SIZE})
+885:	        async_discord_api_request(self.server.domain, self.server.token, "im.open", {"user":	 self.identifier})
+966:	def discord_command_cb(data, current_buffer, args):	
+1012:	# Wrap command_ functions that require they be performed in a discord buffer
+1013:	def discord_buffer_required(f):	
+1018:	            w.prnt(current_buffer, "This command must be used in a discord buffer")
+1024:	@discord_buffer_required
+1041:	@discord_buffer_required
+1045:	    /discord upload [file_path]
+1059:	        async_discord_api_upload_request(token, "files.upload", post_data)
+1064:	    /discord talk [user]
+1087:	    /discord join [channel]
+1094:	            w.prnt(current_buffer, "You are connected to multiple Discord instances, please execute /join from a server buffer. i.e. (domain).discord.com")
+1103:	@discord_buffer_required
+1106:	    List all the channels for the discord instance (name, id, active)
+1107:	    /discord channels
+1143:	@discord_buffer_required
+1146:	    List all the users for the discord instance (name, id, away)
+1147:	    /discord users
+1158:	    /discord setallreadmarkers
+1164:	    w.config_set_plugin('discord_api_token', args)
+1171:	@discord_buffer_required
+1175:	    /discord away
+1178:	    async_discord_api_request(server.domain, server.token, 'presence.set', {"presence":	 "away"})
+1181:	@discord_buffer_required
+1185:	    /discord back
+1188:	    async_discord_api_request(server.domain, server.token, 'presence.set', {"presence":	 "active"})
+1191:	@discord_buffer_required
+1195:	    /discord markread
+1230:	    create_discord_debug_buffer()
+1243:	#    if not discord_buffer:	
+1244:	#        create_discord_buffer()
+1245:	#    w.buffer_set(discord_buffer, "display", "1")
+1247:	#    w.prnt(discord_buffer,"\nSearched for:	 %s\n\n" % (query))
+1248:	#    reply = discord_api_request('search.messages', {"query":	query}).read()
+1253:	#        w.prnt(discord_buffer,str(formatted_message))
+1307:	    /discord topic [<channel>] [<topic>|-delete]
+1321:	                async_discord_api_request(server.domain, server.token, 'channels.setTopic', {"channel":	 channel.identifier, "topic":	 ""})
+1323:	                async_discord_api_request(server.domain, server.token, 'channels.setTopic', {"channel":	 channel.identifier, "topic":	 topic})
+1332:	def discord_websocket_cb(server, fd):	
+1358:	    w.bar_item_update("discord_typing_notice")
+1861:	    w.bar_item_update("discord_typing_notice")
+1921:	def discord_ping_cb(data, remaining):	
+1929:	def discord_connection_persistence_cb(data, remaining_calls):	
+1935:	            server.buffer_prnt("Disconnected from discord, trying to reconnect..")
+1938:	            server.connect_to_discord()
+1942:	def discord_never_away_cb(data, remaining):	
+1946:	            identifier = server.channels.find("discordbot").identifier
+1948:	            #request = {"type":	"typing","channel":	"discordbot"}
+2007:	# Discord specific requests
+2010:	def async_discord_api_request(domain, token, request, post_data, priority=False):	
+2011:	    if not STOP_TALKING_TO_DISCORD:	
+2015:	        params = { 'useragent':	 'wee_discord {}'.format(SCRIPT_VERSION) }
+2019:	def async_discord_api_upload_request(token, request, post_data, priority=False):	
+2020:	    if not STOP_TALKING_TO_DISCORD:	
+2021:	        url = 'https:	//discord.com/api/{}'.format(request)
+2049:	                servers.find(data["token"]).connected_to_discord(my_json)
+2096:	# END Discord specific requests
+2124:	def closed_discord_buffer_cb(data, buffer):	
+2125:	    global discord_buffer
+2126:	    discord_buffer = None
+2130:	def create_discord_buffer():	
+2131:	    global discord_buffer
+2132:	    discord_buffer = w.buffer_new("discord", "", "", "closed_discord_buffer_cb", "")
+2133:	    w.buffer_set(discord_buffer, "notify", "0")
+2134:	    #w.buffer_set(discord_buffer, "display", "1")
+2138:	def closed_discord_debug_buffer_cb(data, buffer):	
+2139:	    global discord_debug
+2140:	    discord_debug = None
+2144:	def create_discord_debug_buffer():	
+2145:	    global discord_debug, debug_string
+2146:	    if discord_debug is not None:	
+2147:	        w.buffer_set(discord_debug, "display", "1")
+2150:	        discord_debug = w.buffer_new("discord-debug", "", "", "closed_discord_debug_buffer_cb", "")
+2151:	        w.buffer_set(discord_debug, "notify", "0")
+2155:	    global discord_api_token, distracting_channels, colorize_nicks, colorize_private_chats, discord_debug, debug_mode, \
+2158:	    discord_api_token = w.config_get_plugin("discord_api_token")
+2160:	    if discord_api_token.startswith('${sec.data'):	
+2161:	        discord_api_token = w.string_eval_expression(discord_api_token, {}, {}, {})
+2168:	        create_discord_debug_buffer()
+2178:	    stop_talking_to_discord()
+2181:	    stop_talking_to_discord()
+2184:	def stop_talking_to_discord():	
+2190:	    global STOP_TALKING_TO_DISCORD
+2191:	    STOP_TALKING_TO_DISCORD = True
+2219:	            CACHE_NAME = "discord.cache"
+2220:	            STOP_TALKING_TO_DISCORD = False
+2222:	            if not w.config_get_plugin('discord_api_token'):	
+2223:	                w.config_set_plugin('discord_api_token', "INSERT VALID KEY HERE!")
+2245:	            discord_debug = None
+2254:	            discord_buffer = None
+2268:	            for token in discord_api_token.split(','):	
+2269:	                server = DiscordServer(token)
+2275:	            w.hook_timer(3000, 0, 0, "discord_connection_persistence_cb", "")
+2281:	            w.hook_timer(1000 * 60 * 29, 0, 0, "discord_never_away_cb", "")
+2291:	                'discord', 'Plugin to allow typing notification and sync of read markers for discord.com',
+2297:	                '\nUse /discord help [command] to find out more\n',
+2301:	                'discord_command_cb', '')
+2311:	            w.hook_completion("nicks", "complete @-nicks for discord",
+2313:	            w.bar_item_new('discord_typing_notice', 'typing_bar_item_cb', '')
